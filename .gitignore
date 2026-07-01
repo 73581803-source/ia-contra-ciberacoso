@@ -10,4 +10,6 @@ dist/
 build/
 bin/
 .buildozer/
-*.spec
+# OJO: NO ignorar *.spec en general, porque buildozer.spec debe subirse.
+# Solo ignoramos el .spec temporal que genera PyInstaller:
+IA_Anti_Ciberacoso.spec
