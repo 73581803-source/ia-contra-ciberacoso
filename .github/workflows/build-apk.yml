@@ -8,16 +8,40 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04   # version mas compatible con compilaciones Android
     steps:
-      - name: Descargar el código
+      - name: Descargar el codigo
         uses: actions/checkout@v4
 
-      - name: Compilar el APK con Buildozer
-        uses: ArtemSBulgakov/buildozer-action@v1
+      - name: Preparar Python 3.11
+        uses: actions/setup-python@v5
         with:
-          command: buildozer android debug
-          buildozer_version: stable
+          python-version: '3.11'
+
+      - name: Instalar dependencias del sistema
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            git zip unzip openjdk-17-jdk autoconf libtool pkg-config \
+            zlib1g-dev libncurses5-dev libncursesw5-dev libtinfo5 \
+            cmake libffi-dev libssl-dev build-essential ccache
+
+      - name: Instalar Buildozer y Cython
+        run: |
+          python -m pip install --upgrade pip
+          pip install "cython<3.0" buildozer
+
+      - name: Guardar cache de buildozer (acelera reintentos)
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.buildozer
+            .buildozer
+          key: buildozer-${{ hashFiles('buildozer.spec') }}
+
+      - name: Compilar el APK (debug)
+        run: |
+          yes | buildozer android debug
 
       - name: Subir el APK como resultado descargable
         uses: actions/upload-artifact@v4
