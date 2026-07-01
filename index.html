@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#4f46e5">
+<link rel="manifest" href="manifest.json">
+<title>IA contra el Ciberacoso</title>
+<style>
+  :root{
+    --bg:#0f172a; --panel:#1e293b; --panel2:#334155;
+    --txt:#e2e8f0; --muted:#94a3b8;
+    --safe:#22c55e; --danger:#ef4444; --warn:#f59e0b;
+    --accent:#6366f1;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+    background:linear-gradient(160deg,#0f172a,#111827); color:var(--txt);
+    min-height:100vh;
+  }
+  header{
+    text-align:center; padding:22px 16px 8px;
+  }
+  header h1{margin:0; font-size:1.5rem}
+  header p{margin:6px 0 0; color:var(--muted); font-size:.9rem}
+  .wrap{max-width:900px; margin:0 auto; padding:16px}
+  .tabs{display:flex; gap:6px; flex-wrap:wrap; margin-bottom:14px}
+  .tabs button{
+    flex:1; min-width:140px; padding:12px 10px; border:none; cursor:pointer;
+    background:var(--panel); color:var(--muted); border-radius:12px;
+    font-size:.92rem; font-weight:600; transition:.15s;
+  }
+  .tabs button.active{background:var(--accent); color:#fff}
+  .card{
+    background:var(--panel); border-radius:16px; padding:18px; margin-bottom:16px;
+    box-shadow:0 6px 20px rgba(0,0,0,.25);
+  }
+  textarea{
+    width:100%; background:#0b1220; color:var(--txt); border:1px solid #334155;
+    border-radius:12px; padding:12px; font-size:1rem; resize:vertical; min-height:110px;
+    font-family:inherit;
+  }
+  textarea:focus{outline:2px solid var(--accent)}
+  button.action{
+    background:var(--accent); color:#fff; border:none; padding:12px 20px;
+    border-radius:12px; font-size:1rem; font-weight:700; cursor:pointer; margin-top:12px;
+  }
+  button.action:active{transform:scale(.98)}
+  button.ghost{background:var(--panel2)}
+  .result{margin-top:16px; border-radius:12px; padding:16px; display:none}
+  .result.show{display:block; animation:fade .2s ease}
+  @keyframes fade{from{opacity:0; transform:translateY(6px)}to{opacity:1}}
+  .verdict{font-size:1.4rem; font-weight:800; display:flex; align-items:center; gap:10px}
+  .r-danger{background:rgba(239,68,68,.12); border:1px solid var(--danger)}
+  .r-safe{background:rgba(34,197,94,.12); border:1px solid var(--safe)}
+  .meta{color:var(--muted); font-size:.85rem; margin-top:8px}
+  .bar{height:10px; border-radius:6px; background:#0b1220; overflow:hidden; margin-top:10px}
+  .bar > i{display:block; height:100%; background:linear-gradient(90deg,#22c55e,#f59e0b,#ef4444)}
+  .chips{margin-top:10px; display:flex; flex-wrap:wrap; gap:6px}
+  .chip{background:rgba(239,68,68,.2); color:#fecaca; padding:3px 10px; border-radius:20px; font-size:.8rem}
+  table{width:100%; border-collapse:collapse; font-size:.88rem; margin-top:12px}
+  th,td{text-align:left; padding:8px 6px; border-bottom:1px solid #334155}
+  th{color:var(--muted); font-weight:600}
+  .tag{padding:3px 9px; border-radius:20px; font-size:.78rem; font-weight:700; white-space:nowrap}
+  .tag.d{background:rgba(239,68,68,.2); color:#fecaca}
+  .tag.s{background:rgba(34,197,94,.2); color:#bbf7d0}
+  .stats{display:flex; gap:10px; flex-wrap:wrap; margin-top:12px}
+  .stat{flex:1; min-width:120px; background:#0b1220; border-radius:12px; padding:12px; text-align:center}
+  .stat b{display:block; font-size:1.6rem}
+  .stat span{color:var(--muted); font-size:.8rem}
+  .ok{color:var(--safe)} .bad{color:var(--danger)}
+  .hint{color:var(--muted); font-size:.82rem; margin-top:6px}
+  .pass{color:var(--safe); font-weight:700}
+  .fail{color:var(--danger); font-weight:700}
+  footer{text-align:center; color:var(--muted); font-size:.78rem; padding:10px 16px 30px}
+  .rowscroll{max-height:420px; overflow:auto; border-radius:12px}
+</style>
+</head>
+<body>
+<header>
+  <h1>🛡️ IA contra el Ciberacoso</h1>
+  <p>Detección de agresividad en mensajes · funciona en PC y Android · sin internet</p>
+</header>
+
+<div class="wrap">
+  <div style="text-align:center;margin-bottom:12px">
+    <button id="btnInstalar" class="action" style="display:none" onclick="instalarApp()">⬇️ Instalar app</button>
+    <span id="estadoBg" class="hint"></span>
+  </div>
+
+  <div class="tabs">
+    <button id="t1" class="active" onclick="tab(1)">🔎 Analizar</button>
+    <button id="t2" onclick="tab(2)">📊 Masivo</button>
+    <button id="t3" onclick="tab(3)">✅ Precisión</button>
+    <button id="t4" onclick="tab(4)">📡 Vigilancia</button>
+  </div>
+
+  <!-- TAB 1: single message -->
+  <section id="p1" class="card">
+    <label><b>Escribe o pega un mensaje:</b></label>
+    <textarea id="msg" placeholder="Ejemplo: Eres un inútil, nadie te quiere aquí."></textarea>
+    <button class="action" onclick="analizarUno()">Analizar</button>
+    <div id="res1" class="result">
+      <div class="verdict" id="v1"></div>
+      <div class="bar"><i id="bar1" style="width:0%"></i></div>
+      <div class="meta" id="m1"></div>
+      <div class="chips" id="c1"></div>
+    </div>
+  </section>
+
+  <!-- TAB 2: bulk -->
+  <section id="p2" class="card" style="display:none">
+    <label><b>Pega una lista de mensajes (uno por línea, hasta 100+):</b></label>
+    <textarea id="bulk" style="min-height:150px" placeholder="Un mensaje por línea...&#10;Buen trabajo compañero!&#10;Eres basura, lárgate&#10;¿Estudiamos juntos hoy?"></textarea>
+    <button class="action" onclick="analizarLote()">Analizar todos</button>
+    <button class="action ghost" onclick="cargarEjemplo()">Cargar 100 de ejemplo</button>
+    <div id="prog2" class="bar" style="display:none;margin-top:12px"><i id="progbar" style="width:0%"></i></div>
+    <div id="res2" class="result">
+      <div class="stats" id="s2"></div>
+      <div class="meta" id="m2"></div>
+      <div class="rowscroll"><table id="tbl2"></table></div>
+    </div>
+  </section>
+
+  <!-- TAB 3: accuracy test -->
+  <section id="p3" class="card" style="display:none">
+    <p>Prueba automática con <b>50 frases etiquetadas</b> (25 insultos reales + 25 frases amigables).
+       El objetivo del proyecto es acertar <b>≥ 90%</b>.</p>
+    <button class="action" onclick="correrPrueba()">Correr prueba de precisión</button>
+    <div id="res3" class="result">
+      <div class="stats" id="s3"></div>
+      <div class="meta" id="m3"></div>
+      <div class="rowscroll"><table id="tbl3"></table></div>
+    </div>
+  </section>
+
+  <!-- TAB 4: vigilancia en tiempo real -->
+  <section id="p4" class="card" style="display:none">
+    <p><b>📡 Modo Vigilancia:</b> analiza el texto <b>automáticamente mientras escribes o pegas</b>,
+       en segundo plano, y te <b>avisa con una notificación</b> si detecta agresividad.</p>
+    <button id="btnVig" class="action" onclick="toggleVigilancia()">▶️ Activar vigilancia</button>
+    <div id="estVig" class="hint">Vigilancia desactivada.</div>
+    <textarea id="vigTxt" style="margin-top:12px" placeholder="Escribe o pega aquí. Se analiza solo, sin apretar ningún botón..."></textarea>
+    <div id="vigRes" class="result">
+      <div class="verdict" id="vigVerdict"></div>
+      <div class="meta" id="vigMeta"></div>
+    </div>
+    <p class="hint" style="margin-top:14px">⚠️ Por seguridad, una página web <b>no puede leer</b> los mensajes de otras
+       apps (WhatsApp, Instagram…). Este modo vigila el texto que tú pegas o escribes aquí. Para vigilar otras apps
+       automáticamente haría falta una <b>app nativa de Android</b> (un proyecto aparte).</p>
+  </section>
+</div>
+
+<footer>Análisis 100% local en tu dispositivo. Herramienta educativa de apoyo, no reemplaza el criterio humano.</footer>
+
+<script src="motor.js"></script>
+<script>
+/* ------- Worker (hilo en segundo plano) ------- */
+let worker = null, pedido = 0;
+const pendientes = {};
+function iniciarWorker(){
+  try{
+    worker = new Worker('worker.js');
+    worker.onmessage = (e)=>{
+      const d = e.data, cb = pendientes[d.id];
+      if(!cb) return;
+      if(d.tipo==='progreso'){ cb.prog && cb.prog(d.hechos, d.total); }
+      else { cb.done(d); delete pendientes[d.id]; }
+    };
+  }catch(err){ worker = null; }  // sin worker: se usa el hilo principal
+}
+// Devuelve una promesa; usa worker si existe, si no calcula directo.
+function pedir(tipo, datos, prog){
+  return new Promise((resolve)=>{
+    if(worker){
+      const id = ++pedido;
+      pendientes[id] = { done:resolve, prog };
+      worker.postMessage({ tipo, datos, id });
+    }else{
+      if(tipo==='lote') resolve({res:datos.map(clasificar)});
+      else if(tipo==='uno') resolve({res:clasificar(datos)});
+    }
+  });
+}
+
+/* ------- UI ------- */
+function tab(n){
+  for(let i=1;i<=4;i++){
+    document.getElementById('p'+i).style.display = (i===n?'block':'none');
+    document.getElementById('t'+i).classList.toggle('active', i===n);
+  }
+}
+
+function analizarUno(){
+  const texto = document.getElementById('msg').value.trim();
+  const box = document.getElementById('res1');
+  if(!texto){ box.className='result'; return; }
+  const t0 = performance.now();
+  const r = clasificar(texto);
+  const ms = (performance.now()-t0);
+
+  const v = document.getElementById('v1');
+  const agresivo = r.etiqueta === 'agresivo';
+  box.className = 'result show ' + (agresivo?'r-danger':'r-safe');
+  v.innerHTML = agresivo ? '🚨 AGRESIVO' : '✅ SEGURO';
+  document.getElementById('bar1').style.width = Math.min(100, r.confianza)+'%';
+  document.getElementById('m1').textContent =
+    `Nivel de riesgo: ${r.confianza}% · Analizado en ${ms.toFixed(1)} ms (límite del proyecto: 2000 ms)`;
+  const c = document.getElementById('c1');
+  c.innerHTML = '';
+  r.motivos.forEach(m=>{
+    const s=document.createElement('span'); s.className='chip'; s.textContent=m; c.appendChild(s);
+  });
+}
+
+async function analizarLote(){
+  const lineas = document.getElementById('bulk').value.split('\n').map(s=>s.trim()).filter(Boolean);
+  const box = document.getElementById('res2');
+  if(!lineas.length){ box.className='result'; return; }
+
+  const barra = document.getElementById('prog2');
+  const bi = document.getElementById('progbar');
+  barra.style.display = 'block'; bi.style.width='0%';
+
+  const t0 = performance.now();
+  const salida = await pedir('lote', lineas, (hechos,tot)=>{ bi.style.width = (hechos/tot*100)+'%'; });
+  const res = salida.res;
+  const total = performance.now()-t0;
+  bi.style.width='100%'; setTimeout(()=>barra.style.display='none', 400);
+
+  const nAgg = res.filter(r=>r.etiqueta==='agresivo').length;
+  document.getElementById('s2').innerHTML = `
+    <div class="stat"><b>${lineas.length}</b><span>mensajes</span></div>
+    <div class="stat"><b class="bad">${nAgg}</b><span>agresivos</span></div>
+    <div class="stat"><b class="ok">${lineas.length-nAgg}</b><span>seguros</span></div>
+    <div class="stat"><b>${total.toFixed(0)} ms</b><span>tiempo total</span></div>`;
+  document.getElementById('m2').textContent =
+    `Promedio ${(total/lineas.length).toFixed(2)} ms por mensaje. Procesado en segundo plano (hilo aparte): la app no se congela con ${lineas.length} mensajes simultáneos.`;
+
+  let html = '<tr><th>#</th><th>Mensaje</th><th>Resultado</th><th>Riesgo</th></tr>';
+  res.forEach((r,i)=>{
+    const agg = r.etiqueta==='agresivo';
+    html += `<tr><td>${i+1}</td><td>${escapar(lineas[i]).slice(0,80)}</td>
+      <td><span class="tag ${agg?'d':'s'}">${agg?'🚨 Agresivo':'✅ Seguro'}</span></td>
+      <td>${r.confianza}%</td></tr>`;
+  });
+  document.getElementById('tbl2').innerHTML = html;
+  box.className='result show';
+}
+
+function correrPrueba(){
+  const box = document.getElementById('res3');
+  const t0 = performance.now();
+  let ok=0, vp=0, vn=0, fp=0, fn=0;
+  let html = '<tr><th>Frase</th><th>Real</th><th>IA dijo</th><th>¿Acertó?</th></tr>';
+  SET_PRUEBA.forEach(item=>{
+    const r = clasificar(item.texto);
+    const acerto = r.etiqueta === item.real;
+    if(acerto) ok++;
+    if(item.real==='agresivo' && r.etiqueta==='agresivo') vp++;
+    if(item.real==='seguro'   && r.etiqueta==='seguro')   vn++;
+    if(item.real==='seguro'   && r.etiqueta==='agresivo') fp++;
+    if(item.real==='agresivo' && r.etiqueta==='seguro')   fn++;
+    html += `<tr><td>${escapar(item.texto).slice(0,60)}</td>
+      <td><span class="tag ${item.real==='agresivo'?'d':'s'}">${item.real}</span></td>
+      <td><span class="tag ${r.etiqueta==='agresivo'?'d':'s'}">${r.etiqueta}</span></td>
+      <td>${acerto?'<span class="pass">✔</span>':'<span class="fail">✘</span>'}</td></tr>`;
+  });
+  const ms = performance.now()-t0;
+  const pct = (ok/SET_PRUEBA.length*100);
+  const cumple = pct>=90;
+
+  document.getElementById('s3').innerHTML = `
+    <div class="stat"><b class="${cumple?'ok':'bad'}">${pct.toFixed(0)}%</b><span>precisión</span></div>
+    <div class="stat"><b>${ok}/${SET_PRUEBA.length}</b><span>aciertos</span></div>
+    <div class="stat"><b>${ms.toFixed(0)} ms</b><span>50 frases</span></div>
+    <div class="stat"><b class="${cumple?'ok':'bad'}">${cumple?'CUMPLE ✅':'NO CUMPLE'}</b><span>meta ≥90%</span></div>`;
+  document.getElementById('m3').innerHTML =
+    `Verdaderos positivos: ${vp} · Verdaderos negativos: ${vn} · ` +
+    `Falsos positivos (broma marcada como acoso): <b>${fp}</b> · ` +
+    `Falsos negativos (acoso no detectado): <b>${fn}</b>`;
+  document.getElementById('tbl3').innerHTML = html;
+  box.className='result show';
+}
+
+function cargarEjemplo(){
+  document.getElementById('bulk').value = EJEMPLO_100.join('\n');
+}
+function escapar(s){return s.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+
+/* ------- MODO VIGILANCIA (tiempo real + notificaciones) ------- */
+let vigilando = false, vigTimer = null, ultimoAviso = '';
+function toggleVigilancia(){
+  vigilando = !vigilando;
+  const btn = document.getElementById('btnVig');
+  const est = document.getElementById('estVig');
+  if(vigilando){
+    if('Notification' in window && Notification.permission==='default'){ Notification.requestPermission(); }
+    btn.textContent = '⏸️ Desactivar vigilancia';
+    est.textContent = '🟢 Vigilancia ACTIVA: analizando en segundo plano mientras escribes.';
+  }else{
+    btn.textContent = '▶️ Activar vigilancia';
+    est.textContent = 'Vigilancia desactivada.';
+    document.getElementById('vigRes').className='result';
+  }
+}
+document.getElementById('vigTxt').addEventListener('input', ()=>{
+  if(!vigilando) return;
+  clearTimeout(vigTimer);
+  vigTimer = setTimeout(analizarVigilancia, 250);   // "debounce": espera a que dejes de teclear
+});
+async function analizarVigilancia(){
+  const txt = document.getElementById('vigTxt').value.trim();
+  const box = document.getElementById('vigRes');
+  if(!txt){ box.className='result'; return; }
+  const salida = await pedir('uno', txt);
+  const r = salida.res;
+  const agg = r.etiqueta==='agresivo';
+  box.className = 'result show ' + (agg?'r-danger':'r-safe');
+  document.getElementById('vigVerdict').innerHTML = agg ? '🚨 AGRESIVO' : '✅ SEGURO';
+  document.getElementById('vigMeta').textContent = 'Nivel de riesgo: '+r.confianza+'% · análisis automático';
+  if(agg && txt!==ultimoAviso){
+    ultimoAviso = txt;
+    notificar('🚨 Mensaje agresivo detectado', txt.slice(0,80));
+  }
+}
+function notificar(titulo, cuerpo){
+  if('Notification' in window && Notification.permission==='granted'){
+    try{ new Notification(titulo, {body:cuerpo, icon:'manifest.json'}); }catch(e){}
+  }
+}
+
+/* ------- INSTALAR APP (PWA) ------- */
+let promptInstalar = null;
+window.addEventListener('beforeinstallprompt', (e)=>{
+  e.preventDefault(); promptInstalar = e;
+  document.getElementById('btnInstalar').style.display = 'inline-block';
+});
+function instalarApp(){
+  if(promptInstalar){ promptInstalar.prompt(); promptInstalar = null;
+    document.getElementById('btnInstalar').style.display='none'; }
+}
+window.addEventListener('appinstalled', ()=>{
+  document.getElementById('estadoBg').textContent = '✅ App instalada';
+});
+
+/* ------- REGISTRO DEL SERVICE WORKER (offline + segundo plano) ------- */
+window.addEventListener('load', ()=>{
+  iniciarWorker();
+  const est = document.getElementById('estadoBg');
+  if('serviceWorker' in navigator && location.protocol.startsWith('http')){
+    navigator.serviceWorker.register('sw.js')
+      .then(()=>{ est.textContent = '🟢 Modo offline activo (funciona sin internet)'; })
+      .catch(()=>{ est.textContent = ''; });
+  }else if(location.protocol==='file:'){
+    est.textContent = 'ℹ️ Para modo offline/instalación, abre la app desde un servidor (ver LEEME).';
+  }
+});
+</script>
+</body>
+</html>

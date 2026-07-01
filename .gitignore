@@ -1,0 +1,13 @@
+# Ajustes locales de Claude Code (privado)
+.claude/
+
+# Temporales de Python
+__pycache__/
+*.pyc
+
+# Resultados de compilación
+dist/
+build/
+bin/
+.buildozer/
+*.spec
